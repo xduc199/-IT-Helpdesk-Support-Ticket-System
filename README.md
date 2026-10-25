@@ -34,11 +34,11 @@ Nếu đã cài, cập nhật công cụ bằng `dotnet tool update --global dot
 Clone repository của nhóm, rồi vào thư mục dự án:
 
 ```powershell
-git clone https://github.com/xduc199/nhom-14.git
+git clone https://github.com/xduc199/-IT-Helpdesk-Support-Ticket-System.git
 cd nhom-14
 ```
 
-Repository: [github.com/xduc199/nhom-14](https://github.com/xduc199/nhom-14).
+Repository: [github.com/xduc199/nhom-14](https://github.com/xduc199/-IT-Helpdesk-Support-Ticket-System).
 
 ## 3. Cấu hình và khởi tạo database
 
