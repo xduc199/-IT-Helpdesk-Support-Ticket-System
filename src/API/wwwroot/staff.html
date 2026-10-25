@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nhân Viên - Quản Lý Lỗi Kỹ Thuật</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        h1, h2, h3, h4 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #fef3c7 0%, #fff7ed 100%);
+        }
+        
+        .gradient-primary {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+        
+        table {
+            border-collapse: collapse;
+        }
+        
+        tbody tr {
+            transition: all 0.3s ease;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        tbody tr:hover {
+            background: rgba(245, 158, 11, 0.05);
+        }
+        
+        .status-badge {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.375rem;
+            display: inline-block;
+        }
+        
+        .status-new {
+            background: linear-gradient(135deg, #bfdbfe 0%, #dbeafe 100%);
+            color: #1e40af;
+        }
+        
+        .status-in-progress {
+            background: linear-gradient(135deg, #fef3c7 0%, #fef08a 100%);
+            color: #92400e;
+        }
+        
+        .status-resolved {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            color: #166534;
+        }
+        
+        .btn-action {
+            transition: all 0.2s ease;
+        }
+        
+        .btn-action:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body class="min-h-screen font-sans">
+    <!-- Header -->
+    <header class="gradient-primary text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center font-bold text-amber-600">
+                    ST
+                </div>
+                <h1 class="text-xl font-bold">Bàn Làm Việc Nhân Viên (IT Support)</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="user-info" class="font-medium bg-white/20 px-3 py-1.5 rounded-lg text-sm backdrop-blur"></span>
+                <button id="btn-logout" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-semibold transition transform hover:scale-105">
+                    Đăng Xuất
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-6 space-y-6">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
+                <p class="text-sm text-slate-600 font-semibold">Tổng Ticket</p>
+                <p id="stat-total" class="text-3xl font-bold text-slate-900 mt-2">0</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
+                <p class="text-sm text-blue-600 font-semibold">Mới</p>
+                <p id="stat-new" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
+                <p class="text-sm text-amber-600 font-semibold">Đang Xử Lý</p>
+                <p id="stat-in-progress" class="text-3xl font-bold text-amber-600 mt-2">0</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
+                <p class="text-sm text-green-600 font-semibold">Hoàn Thành</p>
+                <p id="stat-resolved" class="text-3xl font-bold text-green-600 mt-2">0</p>
+            </div>
+        </div>
+
+        <!-- Search & Filter -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input type="text" id="search-input" placeholder="🔍 Tìm kiếm theo tiêu đề hoặc khách hàng..." 
+                       class="border border-slate-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none transition w-full">
+                
+                <select id="status-filter" class="border border-slate-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none transition">
+                    <option value="">📋 Tất Cả Trạng Thái</option>
+                    <option value="New">🆕 Mới</option>
+                    <option value="In Progress">⏳ Đang Xử Lý</option>
+                    <option value="Resolved">✅ Đã Giải Quyết</option>
+                    <option value="Closed">🔒 Đóng</option>
+                </select>
+
+                <select id="priority-filter" class="border border-slate-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none transition">
+                    <option value="">🎯 Mức Độ Ưu Tiên</option>
+                    <option value="High">🔴 Cao</option>
+                    <option value="Medium">🟡 Trung</option>
+                    <option value="Low">🟢 Thấp</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Tickets Table -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 overflow-x-auto">
+            <h2 class="text-2xl font-bold text-slate-900 mb-4">📋 Danh Sách Tất Cả Ticket</h2>
+            <table class="w-full text-left text-sm text-slate-600">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                        <th class="p-4">Khách Hàng</th>
+                        <th class="p-4">Nội Dung</th>
+                        <th class="p-4">Thẻ Phân Loại</th>
+                        <th class="p-4">Trạng Thái</th>
+                        <th class="p-4">Ngày Tạo</th>
+                        <th class="p-4 text-center">Hành Động</th>
+                    </tr>
+                </thead>
+                <tbody id="all-tickets-table">
+                    <tr>
+                        <td colspan="6" class="text-center py-8 text-slate-400">Đang tải dữ liệu...</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Pagination -->
+            <div id="pagination" class="mt-6 flex justify-between items-center text-sm text-slate-600">
+                <p id="pagination-info"></p>
+                <div class="flex gap-2">
+                    <button id="prev-btn" class="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100 transition disabled:opacity-50">← Trước</button>
+                    <button id="next-btn" class="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100 transition disabled:opacity-50">Tiếp Theo →</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Ticket Detail Modal -->
+    <div id="ticket-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 gradient-primary text-white p-6 flex justify-between items-center">
+                <h3 id="modal-title" class="text-2xl font-bold"></h3>
+                <button onclick="closeModal()" class="text-2xl hover:scale-110 transition">✕</button>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <div id="modal-content"></div>
+
+                <div class="border-t pt-4">
+                    <h4 class="font-bold text-slate-900 mb-3">💬 Cập Nhật Trạng Thái</h4>
+                    <div class="flex gap-2">
+                        <select id="status-update" class="flex-1 border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 outline-none">
+                            <option value="">Chọn trạng thái mới...</option>
+                            <option value="In Progress">⏳ Đang Xử Lý</option>
+                            <option value="Resolved">✅ Đã Giải Quyết</option>
+                            <option value="Closed">🔒 Đóng</option>
+                        </select>
+                        <button onclick="updateTicketStatus()" class="gradient-primary text-white px-6 py-2 rounded-lg font-bold hover:shadow-lg transition">
+                            Cập Nhật
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://localhost:5050/api';
+        const token = localStorage.getItem('accessToken');
+        let myId = '';
+        let allTickets = [];
+        let filteredTickets = [];
+        let currentPage = 1;
+        let pageSize = 10;
+        let currentDetailId = '';
+
+        if (!token) window.location.href = 'login.html';
+
+        // Get Profile
+        async function getProfile() {
+            try {
+                const res = await fetch(`${BASE_URL}/Users/me`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) {
+                    const user = await res.json();
+                    myId = user.id || user.Id;
+                    document.getElementById('user-info').innerText = `👨‍🔧 ${user.username || user.Username}`;
+                    loadAllTickets();
+                } else {
+                    throw new Error('Lỗi đồng bộ quyền hạn');
+                }
+            } catch (error) {
+                Swal.fire('Lỗi', 'Phiên làm việc hết hạn!', 'error');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Load All Tickets
+        async function loadAllTickets() {
+            try {
+                const res = await fetch(`${BASE_URL}/Tickets?pageNumber=1&pageSize=100`, { 
+                    headers: { 'Authorization': `Bearer ${token}` } 
+                });
+                
+                if (res.ok) {
+                    const result = await res.json();
+                    allTickets = result.data || result.Data || [];
+                    filteredTickets = [...allTickets];
+                    updateStats();
+                    renderTickets();
+                } else {
+                    throw new Error('Không thể tải ticket');
+                }
+            } catch (error) {
+                console.error('Error loading tickets:', error);
+                Swal.fire('Lỗi', error.message, 'error');
+            }
+        }
+
+        // Update Stats
+        function updateStats() {
+            document.getElementById('stat-total').innerText = allTickets.length;
+            document.getElementById('stat-new').innerText = allTickets.filter(t => t.status === 'New').length;
+            document.getElementById('stat-in-progress').innerText = allTickets.filter(t => t.status === 'In Progress').length;
+            document.getElementById('stat-resolved').innerText = allTickets.filter(t => t.status === 'Resolved' || t.status === 'Closed').length;
+        }
+
+        // Render Tickets with Pagination
+        function renderTickets() {
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const paginatedTickets = filteredTickets.slice(start, end);
+
+            const tbody = document.getElementById('all-tickets-table');
+            if (paginatedTickets.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Không có ticket nào.</td></tr>';
+            } else {
+                tbody.innerHTML = paginatedTickets.map(t => {
+                    const isNew = t.status === 'New';
+                    return `
+                        <tr class="hover:bg-amber-50 transition">
+                            <td class="p-4 font-bold text-slate-900">${t.requesterName}</td>
+                            <td class="p-4 max-w-xs">
+                                <p class="font-semibold text-slate-800 truncate">${t.title}</p>
+                                <p class="text-xs text-slate-500 truncate">${t.description}</p>
+                            </td>
+                            <td class="p-4">
+                                <div class="flex gap-1 flex-wrap">
+                                    ${t.tags ? t.tags.map(tag => `<span class="bg-slate-100 text-slate-600 text-[10px] px-1.5 py-0.5 rounded font-medium">${tag}</span>`).join('') : '-'}
+                                </div>
+                            </td>
+                            <td class="p-4">
+                                <span class="status-badge status-${t.status.toLowerCase().replace(' ', '-')}">${t.status}</span>
+                            </td>
+                            <td class="p-4 text-xs text-slate-500">${new Date(t.createdAt).toLocaleDateString('vi-VN')}</td>
+                            <td class="p-4 text-center space-x-2">
+                                <button onclick="viewDetail('${t.id}')" class="btn-action text-amber-600 hover:text-amber-700 font-bold">👁️</button>
+                                ${isNew ? `
+                                    <button onclick="claimTicket('${t.id}')" class="btn-action text-green-600 hover:text-green-700 font-bold">✓ Nhận</button>
+                                ` : ''}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            // Update Pagination
+            const totalPages = Math.ceil(filteredTickets.length / pageSize);
+            document.getElementById('pagination-info').innerText = `Trang ${currentPage} / ${totalPages || 1}`;
+            document.getElementById('prev-btn').disabled = currentPage === 1;
+            document.getElementById('next-btn').disabled = currentPage >= totalPages;
+        }
+
+        // View Ticket Detail
+        async function viewDetail(ticketId) {
+            const ticket = allTickets.find(t => t.id === ticketId);
+            if (!ticket) return;
+
+            currentDetailId = ticketId;
+            document.getElementById('modal-title').innerText = ticket.title;
+            document.getElementById('status-update').value = ticket.status;
+
+            let detailHtml = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-slate-600">Khách Hàng</p>
+                            <p class="text-lg font-bold text-slate-900">${ticket.requesterName}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-slate-600">Trạng Thái</p>
+                            <p class="text-lg font-bold text-slate-900">${ticket.status}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-600 mb-2">Mô Tả</p>
+                        <div class="bg-slate-100 rounded-lg p-4 text-slate-800 whitespace-pre-wrap">${ticket.description}</div>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-600 mb-2">Thẻ Phân Loại</p>
+                        <div class="flex gap-2 flex-wrap">
+                            ${ticket.tags ? ticket.tags.map(tag => `<span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-lg text-sm font-medium">${tag}</span>`).join('') : '<p class="text-slate-500 text-sm">Chưa có tag</p>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('modal-content').innerHTML = detailHtml;
+            document.getElementById('ticket-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('ticket-modal').classList.add('hidden');
+        }
+
+        // Claim Ticket
+        async function claimTicket(ticketId) {
+            try {
+                const res = await fetch(`${BASE_URL}/Tickets/${ticketId}/assign`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ assignedToId: myId })
+                });
+
+                if (res.ok) {
+                    await updateTicketStatus2(ticketId, 'In Progress');
+                    Swal.fire('Thành Công', 'Bạn đã nhận ticket này', 'success');
+                    closeModal();
+                    await loadAllTickets();
+                } else {
+                    throw new Error('Không thể nhận ticket');
+                }
+            } catch (error) {
+                Swal.fire('Lỗi', error.message, 'error');
+            }
+        }
+
+        // Update Ticket Status
+        async function updateTicketStatus() {
+            const status = document.getElementById('status-update').value;
+            if (!status || !currentDetailId) return;
+
+            try {
+                const res = await fetch(`${BASE_URL}/Tickets/${currentDetailId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ status })
+                });
+
+                if (res.ok) {
+                    Swal.fire('Thành Công', 'Cập nhật trạng thái thành công', 'success');
+                    closeModal();
+                    await loadAllTickets();
+                } else {
+                    throw new Error('Cập nhật thất bại');
+                }
+            } catch (error) {
+                Swal.fire('Lỗi', error.message, 'error');
+            }
+        }
+
+        async function updateTicketStatus2(ticketId, status) {
+            try {
+                await fetch(`${BASE_URL}/Tickets/${ticketId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ status })
+                });
+            } catch (error) {
+                console.error('Error updating status:', error);
+            }
+        }
+
+        // Search & Filter
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const status = document.getElementById('status-filter').value;
+
+            filteredTickets = allTickets.filter(t => {
+                const matchesQuery = t.title.toLowerCase().includes(query) || 
+                                    t.description.toLowerCase().includes(query) ||
+                                    t.requesterName.toLowerCase().includes(query);
+                const matchesStatus = !status || t.status === status;
+                return matchesQuery && matchesStatus;
+            });
+
+            currentPage = 1;
+            renderTickets();
+        });
+
+        document.getElementById('status-filter').addEventListener('change', (e) => {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const status = e.target.value;
+
+            filteredTickets = allTickets.filter(t => {
+                const matchesQuery = t.title.toLowerCase().includes(query) || 
+                                    t.description.toLowerCase().includes(query) ||
+                                    t.requesterName.toLowerCase().includes(query);
+                const matchesStatus = !status || t.status === status;
+                return matchesQuery && matchesStatus;
+            });
+
+            currentPage = 1;
+            renderTickets();
+        });
+
+        // Pagination
+        document.getElementById('prev-btn').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTickets();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+
+        document.getElementById('next-btn').addEventListener('click', () => {
+            const totalPages = Math.ceil(filteredTickets.length / pageSize);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTickets();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+
+        // Logout
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        });
+
+        // Initial Load
+        getProfile();
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.0/signalr.min.js"></script>
+</body>
+</html>

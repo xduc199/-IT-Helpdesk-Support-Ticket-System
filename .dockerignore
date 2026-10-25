@@ -1,0 +1,12 @@
+.git
+.github
+.vs
+.vscode
+*.db
+*.local
+bin/
+obj/
+out/
+docker-compose.override.yml
+Dockerfile
+run.bat

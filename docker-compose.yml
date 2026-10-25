@@ -1,0 +1,44 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql_server_nhom14
+    ports:
+      - "1433:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=YourStrong@Password
+      - MSSQL_MEMORY_LIMIT_MB=1024
+    volumes:
+      - mssql_data:/var/opt/mssql
+    networks:
+      - helpdesk-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "YourStrong@Password", "-Q", "SELECT 1", "-C"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  webapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: helpdesk_api_nhom14
+    ports:
+      - "7070:8080"
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=HelpdeskDb;User Id=sa;Password=YourStrong@Password;TrustServerCertificate=True;
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - helpdesk-net
+    restart: unless-stopped
+
+volumes:
+  mssql_data:
+
+networks:
+  helpdesk-net:
+    driver: bridge

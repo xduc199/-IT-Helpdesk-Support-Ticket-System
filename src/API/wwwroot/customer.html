@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khách Hàng - Gửi Yêu Cầu Hỗ Trợ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        h1, h2, h3, h4 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f0f9ff 0%, #f5f3ff 100%);
+        }
+        
+        .gradient-primary {
+            background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+        }
+        
+        .ticket-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-left: 4px solid #06b6d4;
+        }
+        
+        .ticket-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(6, 182, 212, 0.15);
+        }
+        
+        .status-badge {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.375rem;
+            display: inline-block;
+        }
+        
+        .status-new {
+            background: linear-gradient(135deg, #bfdbfe 0%, #dbeafe 100%);
+            color: #1e40af;
+        }
+        
+        .status-in-progress {
+            background: linear-gradient(135deg, #fef3c7 0%, #fef08a 100%);
+            color: #92400e;
+        }
+        
+        .status-resolved {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            color: #166534;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen font-sans">
+    <!-- Header -->
+    <header class="gradient-primary text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center font-bold text-cyan-600">
+                    TS
+                </div>
+                <h1 class="text-xl font-bold">Trung Tâm Hỗ Trợ Khách Hàng</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="user-info" class="font-medium bg-white/20 px-3 py-1.5 rounded-lg text-sm backdrop-blur"></span>
+                <button id="btn-logout" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-semibold transition transform hover:scale-105">
+                    Đăng Xuất
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-6 space-y-6">
+        <!-- Create Ticket Card -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+            <h2 class="text-2xl font-bold text-slate-900 mb-6">📝 Tạo Yêu Cầu Hỗ Trợ Mới</h2>
+            <form id="ticket-form" class="space-y-4">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Tiêu Đề Vấn Đề</label>
+                        <input type="text" id="title" placeholder="VD: Không thể đăng nhập vào tài khoản" 
+                               class="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition"
+                               required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Chọn Thẻ Phân Loại</label>
+                        <div id="tags-container" class="flex flex-wrap gap-2 max-h-12 overflow-y-auto p-2 border border-slate-200 rounded-lg">
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Mô Tả Chi Tiết Lỗi</label>
+                    <textarea id="description" rows="5" placeholder="Mô tả chi tiết vấn đề bạn đang gặp phải..." 
+                              class="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition resize-none"
+                              required></textarea>
+                </div>
+
+                <div class="flex gap-4">
+                    <button type="submit" id="btn-submit" 
+                            class="flex-1 gradient-primary text-white font-bold py-3 rounded-lg hover:shadow-lg transition transform hover:scale-105">
+                        🚀 Gửi Yêu Cầu
+                    </button>
+                    <button type="reset" class="px-6 py-3 border-2 border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-100 transition">
+                        Xóa
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tickets List with Search & Filter -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+                <h2 class="text-2xl font-bold text-slate-900">📋 Lịch Sử Yêu Cầu Của Bạn</h2>
+                <div class="flex gap-2 flex-wrap">
+                    <input type="text" id="search-input" placeholder="🔍 Tìm kiếm..." 
+                           class="border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-cyan-500 outline-none transition">
+                    <select id="status-filter" class="border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-cyan-500 outline-none transition">
+                        <option value="">Tất Cả Trạng Thái</option>
+                        <option value="New">Mới</option>
+                        <option value="In Progress">Đang Xử Lý</option>
+                        <option value="Resolved">Đã Giải Quyết</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="ticket-list" class="space-y-4">
+                <div class="text-center py-12">
+                    <p class="text-slate-400">Đang tải dữ liệu...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Ticket Detail Modal -->
+    <div id="ticket-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <!-- Modal Header -->
+            <div class="sticky top-0 gradient-primary text-white p-6 flex justify-between items-center rounded-t-2xl">
+                <h3 id="modal-title" class="text-2xl font-bold"></h3>
+                <button onclick="closeModal()" class="text-2xl hover:scale-110 transition">✕</button>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="p-6 space-y-6">
+                <div id="modal-content">
+                </div>
+
+                <!-- Comments Section -->
+                <div class="border-t pt-6">
+                    <h4 class="text-xl font-bold text-slate-900 mb-4">💬 Bình Luận & Ghi Chú</h4>
+                    <div id="comments-list" class="space-y-3 mb-4 max-h-64 overflow-y-auto">
+                    </div>
+                    
+                    <div class="border-t pt-4">
+                        <form id="comment-form" class="flex gap-2">
+                            <input type="hidden" id="comment-ticket-id">
+                            <textarea id="comment-text" placeholder="Thêm bình luận..." 
+                                      class="flex-1 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-cyan-500 outline-none transition resize-none"
+                                      rows="2" required></textarea>
+                            <button type="submit" class="gradient-primary text-white font-bold px-4 rounded-lg hover:shadow-lg transition">
+                                Gửi
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://localhost:5050/api';
+        const token = localStorage.getItem('accessToken');
+        const currentUsername = localStorage.getItem('username');
+        let allTickets = [];
+        let filteredTickets = [];
+
+        if (!token) window.location.href = 'login.html';
+
+        document.getElementById('user-info').innerText = `👤 ${currentUsername}`;
+
+        // Load Tags
+        async function loadTags() {
+            try {
+                const res = await fetch(`${BASE_URL}/Tags`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) {
+                    const tags = await res.json();
+                    const container = document.getElementById('tags-container');
+                    container.innerHTML = tags.map(tag => `
+                        <label class="inline-flex items-center gap-2 bg-slate-100 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 cursor-pointer hover:bg-slate-200 transition">
+                            <input type="checkbox" name="tagIds" value="${tag.id}" class="rounded text-cyan-600">
+                            ${tag.name}
+                        </label>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading tags:', error);
+            }
+        }
+
+        // Load Tickets
+        async function loadMyTickets() {
+            try {
+                const res = await fetch(`${BASE_URL}/Tickets?pageNumber=1&pageSize=100`, { 
+                    headers: { 'Authorization': `Bearer ${token}` } 
+                });
+                
+                if (res.ok) {
+                    const result = await res.json();
+                    allTickets = result.data || result.Data || [];
+                    allTickets = allTickets.filter(t => t.requesterName === currentUsername);
+                    filteredTickets = allTickets;
+                    renderTickets();
+                }
+            } catch (error) {
+                console.error('Error loading tickets:', error);
+                Swal.fire('Lỗi', 'Không thể tải dữ liệu ticket', 'error');
+            }
+        }
+
+        // Render Tickets
+        function renderTickets() {
+            const container = document.getElementById('ticket-list');
+            if (filteredTickets.length === 0) {
+                container.innerHTML = '<p class="text-center text-slate-400 py-12">Bạn chưa gửi yêu cầu hỗ trợ nào.</p>';
+                return;
+            }
+
+            container.innerHTML = filteredTickets.map(t => {
+                const isNew = t.status === 'New';
+                return `
+                    <div class="ticket-card bg-slate-50 rounded-xl p-5 hover:shadow-md transition">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <h3 class="text-lg font-bold text-slate-900">${t.title}</h3>
+                                    <span class="status-badge status-${t.status.toLowerCase().replace(' ', '-')}">${t.status}</span>
+                                </div>
+                                <p class="text-sm text-slate-600 line-clamp-2">${t.description}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-2 mb-3 flex-wrap">
+                            ${t.tags ? t.tags.map(tag => `<span class="inline-block bg-white text-slate-600 text-xs px-2.5 py-1 rounded-full border border-slate-200 font-medium">${tag}</span>`).join('') : ''}
+                        </div>
+
+                        <div class="flex justify-between items-center text-xs text-slate-500">
+                            <span>ID: ${t.id.substring(0, 8)}...</span>
+                            <div class="flex gap-2">
+                                <button onclick="viewTicketDetail('${t.id}')" class="text-cyan-600 hover:text-cyan-700 font-semibold">👁️ Chi Tiết</button>
+                                ${isNew ? `
+                                    <button onclick="deleteTicket('${t.id}')" class="text-red-600 hover:text-red-700 font-semibold">🗑️ Xóa</button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // View Ticket Detail
+        async function viewTicketDetail(ticketId) {
+            const ticket = allTickets.find(t => t.id === ticketId);
+            if (!ticket) return;
+
+            document.getElementById('modal-title').innerText = ticket.title;
+            document.getElementById('comment-ticket-id').value = ticketId;
+
+            let detailHtml = `
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-slate-600">Trạng Thái</p>
+                        <p class="text-lg font-bold text-slate-900">${ticket.status}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-600">Ngày Tạo</p>
+                        <p class="text-lg font-bold text-slate-900">${new Date(ticket.createdAt).toLocaleDateString('vi-VN')}</p>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-sm text-slate-600 mb-2">Mô Tả</p>
+                    <div class="bg-slate-100 rounded-lg p-4 text-slate-800 whitespace-pre-wrap">${ticket.description}</div>
+                </div>
+                <div>
+                    <p class="text-sm text-slate-600 mb-2">Thẻ Phân Loại</p>
+                    <div class="flex gap-2 flex-wrap">
+                        ${ticket.tags ? ticket.tags.map(tag => `<span class="bg-cyan-100 text-cyan-700 px-3 py-1 rounded-lg text-sm font-medium">${tag}</span>`).join('') : '<p class="text-slate-500 text-sm">Chưa có tag</p>'}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('modal-content').innerHTML = detailHtml;
+            
+            // Load comments
+            await loadComments(ticketId);
+
+            document.getElementById('ticket-modal').classList.remove('hidden');
+        }
+
+        // Load Comments
+        async function loadComments(ticketId) {
+            try {
+                const res = await fetch(`${BASE_URL}/Tickets/${ticketId}`, { 
+                    headers: { 'Authorization': `Bearer ${token}` } 
+                });
+                if (res.ok) {
+                    const ticket = await res.json();
+                    const comments = ticket.comments || [];
+                    const commentsList = document.getElementById('comments-list');
+                    
+                    if (comments.length === 0) {
+                        commentsList.innerHTML = '<p class="text-slate-500 text-sm">Chưa có bình luận nào</p>';
+                    } else {
+                        commentsList.innerHTML = comments.map(c => `
+                            <div class="bg-slate-100 rounded-lg p-3">
+                                <p class="font-semibold text-slate-900 text-sm">${c.authorName || 'Ẩn danh'}</p>
+                                <p class="text-xs text-slate-500 mb-1">${new Date(c.createdAt).toLocaleString('vi-VN')}</p>
+                                <p class="text-slate-800 text-sm">${c.content}</p>
+                            </div>
+                        `).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading comments:', error);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('ticket-modal').classList.add('hidden');
+        }
+
+        // Create Ticket
+        document.getElementById('ticket-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('description').value;
+            const tagIds = Array.from(document.querySelectorAll('input[name="tagIds"]:checked')).map(el => el.value);
+
+            try {
+                const res = await fetch(`${BASE_URL}/Tickets`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ title, description, tagIds })
+                });
+
+                if (res.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thành Công!',
+                        text: 'Yêu cầu hỗ trợ của bạn đã được gửi',
+                        confirmButtonColor: '#06b6d4'
+                    });
+                    document.getElementById('ticket-form').reset();
+                    await loadMyTickets();
+                } else {
+                    throw new Error('Gửi ticket thất bại');
+                }
+            } catch (error) {
+                Swal.fire('Lỗi', error.message, 'error');
+            }
+        });
+
+        // Delete Ticket
+        async function deleteTicket(id) {
+            const result = await Swal.fire({
+                icon: 'warning',
+                title: 'Xóa Ticket',
+                text: 'Bạn có chắc chắn muốn xóa ticket này không?',
+                showCancelButton: true,
+                confirmButtonText: 'Xóa',
+                cancelButtonText: 'Hủy',
+                confirmButtonColor: '#ef4444'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    const res = await fetch(`${BASE_URL}/Tickets/${id}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        Swal.fire('Thành Công', 'Ticket đã được xóa', 'success');
+                        await loadMyTickets();
+                    } else {
+                        throw new Error('Xóa thất bại');
+                    }
+                } catch (error) {
+                    Swal.fire('Lỗi', error.message, 'error');
+                }
+            }
+        }
+
+        // Add Comment
+        document.getElementById('comment-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const ticketId = document.getElementById('comment-ticket-id').value;
+            const content = document.getElementById('comment-text').value;
+
+            try {
+                const res = await fetch(`${BASE_URL}/Tickets/${ticketId}/comments`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ content })
+                });
+
+                if (res.ok) {
+                    document.getElementById('comment-text').value = '';
+                    await loadComments(ticketId);
+                } else {
+                    throw new Error('Thêm bình luận thất bại');
+                }
+            } catch (error) {
+                Swal.fire('Lỗi', error.message, 'error');
+            }
+        });
+
+        // Search & Filter
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            filteredTickets = allTickets.filter(t => 
+                t.title.toLowerCase().includes(query) || 
+                t.description.toLowerCase().includes(query)
+            );
+            applyStatusFilter();
+        });
+
+        document.getElementById('status-filter').addEventListener('change', applyStatusFilter);
+
+        function applyStatusFilter() {
+            const status = document.getElementById('status-filter').value;
+            if (status) {
+                filteredTickets = filteredTickets.filter(t => t.status === status);
+            }
+            renderTickets();
+        }
+
+        // Logout
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        });
+
+        // Initial load
+        loadTags();
+        loadMyTickets();
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.0/signalr.min.js"></script>
+</body>
+</html>

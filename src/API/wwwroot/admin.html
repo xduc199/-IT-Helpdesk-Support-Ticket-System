@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Trị Viên - Hệ Thống Hỗ Trợ Tổng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/papaparse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        h1, h2, h3, h4 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+        
+        .gradient-primary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            color: white;
+        }
+        
+        .stat-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-4px);
+        }
+        
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(203, 213, 225, 0.1);
+            backdrop-filter: blur(10px);
+            color: #e2e8f0;
+        }
+        
+        .form-input-admin {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(203, 213, 225, 0.2);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .form-input-admin:focus {
+            background: rgba(30, 41, 59, 0.8);
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+        
+        .form-input-admin::placeholder {
+            color: rgba(203, 213, 225, 0.6);
+        }
+        
+        .btn-admin {
+            transition: all 0.3s ease;
+        }
+        
+        .btn-admin:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.3);
+        }
+        
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        
+        .tab-btn.active {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+        
+        .tab-btn:not(.active) {
+            background: rgba(203, 213, 225, 0.1);
+            color: #cbd5e1;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .audit-log-item {
+            background: rgba(30, 41, 59, 0.3);
+            border-left: 3px solid #10b981;
+            transition: all 0.3s ease;
+        }
+        
+        .audit-log-item:hover {
+            background: rgba(30, 41, 59, 0.5);
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-100">
+    <!-- Header -->
+    <header class="gradient-primary text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center font-bold text-emerald-600">
+                    ⚙️
+                </div>
+                <h1 class="text-xl font-bold">Hệ Thống Quản Trị Viên(Admin Panel)</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="user-info" class="text-sm font-semibold bg-white/20 px-3 py-1.5 rounded-lg backdrop-blur">Admin</span>
+                <button id="btn-logout" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-sm font-semibold transition transform hover:scale-105">
+                    Đăng Xuất
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-6 space-y-8">
+        <!-- Dashboard Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="stat-card rounded-xl p-6">
+                <p class="text-sm font-semibold text-emerald-300">📊 Tổng Số Ticket</p>
+                <p class="text-4xl font-bold mt-2" id="stat-total">0</p>
+                <p class="text-xs text-slate-400 mt-2">Trên toàn bộ hệ thống</p>
+            </div>
+            <div class="stat-card rounded-xl p-6">
+                <p class="text-sm font-semibold text-amber-300">⏳ Đang Xử Lý</p>
+                <p class="text-4xl font-bold mt-2" id="stat-pending">0</p>
+                <p class="text-xs text-slate-400 mt-2">Chờ xử lý hoặc đang thực hiện</p>
+            </div>
+            <div class="stat-card rounded-xl p-6">
+                <p class="text-sm font-semibold text-emerald-300">✅ Đã Hoàn Thành</p>
+                <p class="text-4xl font-bold mt-2" id="stat-done">0</p>
+                <p class="text-xs text-slate-400 mt-2">Resolved hoặc Closed</p>
+            </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="glass-panel rounded-xl p-6">
+            <h3 class="text-xl font-bold mb-4">📈 Biểu Đồ Trạng Thái Ticket</h3>
+            <div class="flex flex-col lg:flex-row gap-6 items-center">
+                <div class="w-full lg:w-1/2">
+                    <canvas id="statusChart"></canvas>
+                </div>
+                <div class="w-full lg:w-1/2 space-y-3">
+                    <div class="flex items-center justify-between bg-slate-800/50 p-3 rounded-lg">
+                        <span>🆕 Mới (New)</span>
+                        <span id="chart-new" class="text-emerald-400 font-bold">0</span>
+                    </div>
+                    <div class="flex items-center justify-between bg-slate-800/50 p-3 rounded-lg">
+                        <span>⏳ Đang Xử Lý (In Progress)</span>
+                        <span id="chart-inprogress" class="text-amber-400 font-bold">0</span>
+                    </div>
+                    <div class="flex items-center justify-between bg-slate-800/50 p-3 rounded-lg">
+                        <span>✅ Đã Giải Quyết (Resolved)</span>
+                        <span id="chart-resolved" class="text-emerald-400 font-bold">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="flex gap-2 border-b border-slate-700">
+            <button class="tab-btn active" onclick="switchTab('tags')">🏷️ Quản Lý Tags</button>
+            <button class="tab-btn" onclick="switchTab('roles')">👥 Quản Lý Quyền</button>
+            <button class="tab-btn" onclick="switchTab('audit')">📋 Audit Logs</button>
+            <button class="tab-btn" onclick="switchTab('export')">📥 Xuất Dữ Liệu</button>
+        </div>
+
+        <!-- Tab 1: Tags Management -->
+        <div id="tags" class="tab-content active glass-panel rounded-xl p-6 space-y-4">
+            <h2 class="text-xl font-bold">🏷️ Quản Lý Danh Mục Thẻ Tags</h2>
+            <form id="tag-form" class="flex gap-2 flex-wrap">
+                <input type="text" id="tag-name" placeholder="Nhập tên tag mới..." 
+                       class="form-input-admin flex-1 min-w-64 rounded-lg px-4 py-2 outline-none">
+                <button type="submit" class="gradient-primary text-white px-6 py-2 rounded-lg font-bold btn-admin">
+                    ➕ Thêm Tag
+                </button>
+            </form>
+            <div id="admin-tag-list" class="flex flex-wrap gap-3 pt-4">
+            </div>
+        </div>
+
+        <!-- Tab 2: Roles Management -->
+        <div id="roles" class="tab-content glass-panel rounded-xl p-6 space-y-4">
+            <h2 class="text-xl font-bold">👥 Cấp & Phân Quyền Vai Trò</h2>
+            <form id="role-form" class="space-y-4 max-w-xl">
+                <div>
+                    <label class="block text-sm font-bold mb-2 text-emerald-300">Tên Tài Khoản (Username)</label>
+                    <input type="text" id="role-username" placeholder="Nhập username chính xác..." 
+                           class="form-input-admin w-full rounded-lg px-4 py-2 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-2 text-emerald-300">Quyền Phân Bổ</label>
+                    <select id="role-select" class="form-input-admin w-full rounded-lg px-4 py-2 outline-none">
+                        <option value="Customer">👤 Khách Hàng (Customer)</option>
+                        <option value="IT_Support">👨‍🔧 Nhân Viên (IT_Support)</option>
+                        <option value="Admin">⚙️ Quản Trị Viên (Admin)</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full gradient-primary text-white py-2 rounded-lg font-bold btn-admin">
+                    🔄 Xác Nhận Đổi Quyền
+                </button>
+            </form>
+        </div>
+
+        <!-- Tab 3: Audit Logs -->
+        <div id="audit" class="tab-content glass-panel rounded-xl p-6 space-y-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">📋 Lịch Sử Hoạt Động (Audit Logs)</h2>
+                <button onclick="exportAuditLogs()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-bold btn-admin">
+                    📥 Xuất Logs
+                </button>
+            </div>
+            <div id="audit-logs-list" class="space-y-2 max-h-96 overflow-y-auto">
+                <p class="text-slate-400">Đang tải logs...</p>
+            </div>
+        </div>
+
+        <!-- Tab 4: Export Data -->
+        <div id="export" class="tab-content glass-panel rounded-xl p-6 space-y-4">
+            <h2 class="text-xl font-bold">📥 Xuất Dữ Liệu</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button onclick="exportToCSV()" class="bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-lg font-bold btn-admin transition flex flex-col items-center justify-center gap-2">
+                    📊 Xuất CSV
+                    <span class="text-xs text-blue-200">Dữ liệu ticket</span>
+                </button>
+                <button onclick="exportToPDF()" class="bg-red-600 hover:bg-red-700 text-white py-4 rounded-lg font-bold btn-admin transition flex flex-col items-center justify-center gap-2">
+                    📄 Xuất PDF
+                    <span class="text-xs text-red-200">Báo cáo chi tiết</span>
+                </button>
+                <button onclick="exportJSON()" class="bg-yellow-600 hover:bg-yellow-700 text-white py-4 rounded-lg font-bold btn-admin transition flex flex-col items-center justify-center gap-2">
+                    ⚙️ Xuất JSON
+                    <span class="text-xs text-yellow-200">Dữ liệu gốc</span>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const BASE_URL = 'http://localhost:5050/api';
+        const token = localStorage.getItem('accessToken');
+        let allTickets = [];
+
+        if (!token) window.location.href = 'login.html';
+
+        // Tab Switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            if (tabName === 'audit') loadAuditLogs();
+        }
+
+        // Load Dashboard Stats
+        async function loadDashboardStats() {
+            try {
+                const res = await fetch(`${BASE_URL}/Tickets?pageNumber=1&pageSize=100`, { 
+                    headers: { 'Authorization': `Bearer ${token}` } 
+                });
+                
+                if (res.ok) {
+                    const result = await res.json();
+                    allTickets = result.data || result.Data || [];
+
+                    const total = allTickets.length;
+                    const newCount = allTickets.filter(t => t.status === 'New').length;
+                    const inProgress = allTickets.filter(t => t.status === 'In Progress').length;
+                    const pending = newCount + inProgress;
+                    const done = allTickets.filter(t => t.status === 'Resolved' || t.status === 'Closed').length;
+
+                    document.getElementById('stat-total').innerText = total;
+                    document.getElementById('stat-pending').innerText = pending;
+                    document.getElementById('stat-done').innerText = done;
+
+                    // Chart
+                    document.getElementById('chart-new').innerText = newCount;
+                    document.getElementById('chart-inprogress').innerText = inProgress;
+                    document.getElementById('chart-resolved').innerText = done;
+
+                    renderChart(newCount, inProgress, done);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Render Chart
+        function renderChart(newCount, inProgress, done) {
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['🆕 Mới', '⏳ Đang Xử Lý', '✅ Đã Giải Quyết'],
+                    datasets: [{
+                        data: [newCount, inProgress, done],
+                        backgroundColor: [
+                            'rgba(59, 130, 246, 0.8)',
+                            'rgba(251, 191, 36, 0.8)',
+                            'rgba(16, 185, 129, 0.8)'
+                        ],
+                        borderColor: ['#3b82f6', '#fbbf24', '#10b981'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#e2e8f0',
+                                font: { size: 12, weight: '600' },
+                                padding: 15
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load Tags
+        async function loadAdminTags() {
+            try {
+                const res = await fetch(`${BASE_URL}/Tags`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) {
+                    const tags = await res.json();
+                    const container = document.getElementById('admin-tag-list');
+                    container.innerHTML = tags.map(tag => `
+                        <div class="inline-flex items-center gap-2 bg-slate-700 border border-slate-600 text-xs px-3 py-2 rounded-lg font-medium text-slate-200">
+                            ${tag.name}
+                            <button type="button" onclick="deleteTag('${tag.id}')" class="text-red-400 hover:text-red-300 font-bold cursor-pointer">×</button>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading tags:', error);
+            }
+        }
+
+        // Add Tag
+        document.getElementById('tag-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('tag-name').value.trim();
+            if (!name) return;
+
+            try {
+                const res = await fetch(`${BASE_URL}/Tags`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ name })
+                });
+                if (res.ok) {
+                    document.getElementById('tag-name').value = '';
+                    Swal.fire('Thành Công', 'Tag đã được thêm', 'success');
+                    loadAdminTags();
+                }
+            } catch (error) {
+                Swal.fire('Lỗi', 'Thêm tag thất bại', 'error');
+            }
+        });
+
+        // Delete Tag
+        async function deleteTag(id) {
+            const confirm = await Swal.fire({
+                icon: 'warning',
+                title: 'Xóa Tag',
+                text: 'Bạn có chắc chắn muốn xóa tag này?',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444'
+            });
+
+            if (confirm.isConfirmed) {
+                try {
+                    const res = await fetch(`${BASE_URL}/Tags/${id}`, { 
+                        method: 'DELETE', 
+                        headers: { 'Authorization': `Bearer ${token}` } 
+                    });
+                    if (res.ok) {
+                        Swal.fire('Thành Công', 'Tag đã được xóa', 'success');
+                        loadAdminTags();
+                    }
+                } catch (error) {
+                    Swal.fire('Lỗi', 'Xóa thất bại', 'error');
+                }
+            }
+        }
+
+        // Assign Role
+        document.getElementById('role-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('role-username').value.trim();
+            const role = document.getElementById('role-select').value;
+
+            try {
+                const res = await fetch(`${BASE_URL}/Auth/assign-role`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ username, role })
+                });
+
+                if (res.ok) {
+                    Swal.fire('Thành Công', `Đã đổi quyền cho ${username}`, 'success');
+                    document.getElementById('role-form').reset();
+                } else {
+                    throw new Error('Tài khoản không tồn tại');
+                }
+            } catch (error) {
+                Swal.fire('Lỗi', error.message, 'error');
+            }
+        });
+
+        // Load Audit Logs
+        async function loadAuditLogs() {
+            try {
+                const res = await fetch(`${BASE_URL}/AuditLogs`, { 
+                    headers: { 'Authorization': `Bearer ${token}` } 
+                });
+                if (res.ok) {
+                    const logs = await res.json();
+                    const container = document.getElementById('audit-logs-list');
+                    
+                    if (!logs || logs.length === 0) {
+                        container.innerHTML = '<p class="text-slate-400">Chưa có audit log nào</p>';
+                        return;
+                    }
+
+                    container.innerHTML = logs.slice(0, 50).map(log => `
+                        <div class="audit-log-item rounded-lg p-3">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <p class="font-semibold text-emerald-300">${log.action}</p>
+                                    <p class="text-sm text-slate-400">${log.description || ''}</p>
+                                </div>
+                                <span class="text-xs text-slate-500">${new Date(log.timestamp).toLocaleString('vi-VN')}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading audit logs:', error);
+            }
+        }
+
+        // Export Functions
+        function exportToCSV() {
+            if (allTickets.length === 0) {
+                Swal.fire('Thông Báo', 'Chưa có dữ liệu để xuất', 'warning');
+                return;
+            }
+
+            const csv = [
+                ['ID', 'Tiêu Đề', 'Khách Hàng', 'Mô Tả', 'Trạng Thái', 'Ngày Tạo'],
+                ...allTickets.map(t => [
+                    t.id,
+                    t.title,
+                    t.requesterName,
+                    t.description,
+                    t.status,
+                    new Date(t.createdAt).toLocaleDateString('vi-VN')
+                ])
+            ];
+
+            const csvContent = csv.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `tickets_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+
+            Swal.fire('Thành Công', 'Đã xuất file CSV', 'success');
+        }
+
+        function exportToPDF() {
+            if (allTickets.length === 0) {
+                Swal.fire('Thông Báo', 'Chưa có dữ liệu để xuất', 'warning');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            doc.setFontSize(16);
+            doc.text('Báo Cáo Ticket Hỗ Trợ', 10, 10);
+            
+            doc.setFontSize(10);
+            doc.text(`Ngày xuất: ${new Date().toLocaleDateString('vi-VN')}`, 10, 20);
+            doc.text(`Tổng ticket: ${allTickets.length}`, 10, 27);
+
+            let y = 35;
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'bold');
+            doc.text('Thống Kê:', 10, y);
+            
+            y += 7;
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(10);
+            const stats = {
+                'Mới': allTickets.filter(t => t.status === 'New').length,
+                'Đang Xử Lý': allTickets.filter(t => t.status === 'In Progress').length,
+                'Đã Giải Quyết': allTickets.filter(t => t.status === 'Resolved' || t.status === 'Closed').length
+            };
+
+            Object.entries(stats).forEach(([key, value]) => {
+                doc.text(`${key}: ${value}`, 10, y);
+                y += 7;
+            });
+
+            doc.save(`ticket_report_${new Date().toISOString().split('T')[0]}.pdf`);
+            Swal.fire('Thành Công', 'Đã xuất file PDF', 'success');
+        }
+
+        function exportJSON() {
+            if (allTickets.length === 0) {
+                Swal.fire('Thông Báo', 'Chưa có dữ liệu để xuất', 'warning');
+                return;
+            }
+
+            const dataStr = JSON.stringify(allTickets, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `tickets_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+
+            Swal.fire('Thành Công', 'Đã xuất file JSON', 'success');
+        }
+
+        function exportAuditLogs() {
+            Swal.fire('Thành Công', 'Đang xuất audit logs...', 'success');
+            // Có thể thêm logic xuất logs chi tiết
+        }
+
+        // Logout
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        });
+
+        // Initial Load
+        document.getElementById('user-info').innerText = `⚙️ Admin`;
+        loadDashboardStats();
+        loadAdminTags();
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.0/signalr.min.js"></script>
+</body>
+</html>
